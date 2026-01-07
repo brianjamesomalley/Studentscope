@@ -1,2 +1,2 @@
 # Studentscope
-a behavior app to help paraprofessionals
+A comprehensive educational solution
