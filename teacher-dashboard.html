@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudentScope Teacher | Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { background: #f0f4f8; }
+
+/* Dashboard Layout */
+.dashboard { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+/* Sidebar Navigation */
+.sidebar { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: white; padding: 30px 20px; }
+.logo { font-size: 1.8rem; font-weight: 800; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+.logo span { background: #3b82f6; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; }
+.nav-item { padding: 12px 16px; margin: 8px 0; border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px; }
+.nav-item:hover { background: rgba(255,255,255,0.1); }
+.nav-item.active { background: #3b82f6; }
+.user-section { margin-top: auto; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+/* Main Content */
+.main-content { padding: 30px; overflow-y: auto; max-height: 100vh; }
+
+/* Header */
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.header-title h1 { font-size: 2rem; color: #0f172a; }
+.header-title p { color: #64748b; }
+.header-actions { display: flex; gap: 15px; align-items: center; }
+.inbox-badge { background: #ef4444; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; }
+
+/* Stats Cards */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+.stat-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+.stat-title { color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.stat-value { font-size: 2.5rem; font-weight: 800; color: #0f172a; }
+.stat-change { display: flex; align-items: center; gap: 5px; margin-top: 8px; font-size: 0.9rem; color: #64748b; }
+
+@media (max-width: 1200px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; left: -260px; transition: left 0.3s; z-index: 100; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Action Cards Grid */
+.action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+.action-card { background: white; padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; }
+.action-card h3 { color: #0f172a; margin-bottom: 15px; font-size: 1.2rem; }
+
+/* Form Elements */
+.form-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 8px; font-weight: 600; color: #0f172a; font-size: 0.9rem; }
+input, textarea, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; }
+textarea { min-height: 100px; resize: vertical; }
+
+/* Buttons */
+.btn { padding: 12px 24px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; transform: translateY(-2px); }
+.btn-secondary { background: white; border: 1px solid #e2e8f0; color: #0f172a; }
+.btn-secondary:hover { background: #f8fafc; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* Teacher Filter Bar */
+.filter-bar {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 15px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.filter-bar label { margin: 0; font-weight: 600; color: #0f172a; white-space: nowrap; }
+.filter-bar select { width: auto; min-width: 200px; padding: 8px 12px; }
+.filter-bar input[type="date"] { width: auto; padding: 8px 12px; }
+.filter-count { margin-left: auto; color: #64748b; font-size: 0.9rem; font-weight: 600; }
+
+/* Teacher Tag */
+.teacher-tag {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Student List */
+.student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+.student-card { background: #f8fafc; padding: 15px; border-radius: 12px; border-left: 4px solid #3b82f6; cursor: pointer; transition: all 0.2s; }
+.student-card:hover { background: #e0e6ed; transform: translateX(5px); }
+.student-name { font-weight: 700; color: #0f172a; margin-bottom: 5px; }
+.student-meta { font-size: 0.85rem; color: #64748b; }
+.access-code { background: #e0e6ed; padding: 4px 8px; border-radius: 6px; font-family: monospace; font-weight: 700; display: inline-block; margin-top: 8px; }
+
+/* Recent Behaviors */
+.behavior-list { max-height: 400px; overflow-y: auto; }
+.behavior-item { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid; }
+.behavior-item.positive { border-color: #10b981; }
+.behavior-item.negative { border-color: #ef4444; }
+.behavior-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.behavior-student { font-weight: 700; color: #0f172a; }
+.behavior-type { font-weight: 700; }
+.behavior-text { color: #64748b; font-size: 0.9rem; margin-bottom: 5px; }
+.behavior-time { font-size: 0.85rem; color: #94a3b8; }
+
+/* Messages */
+.message-list { max-height: 300px; overflow-y: auto; }
+.message-item { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #3b82f6; transition: all 0.2s; }
+.message-item:hover { background: #e0e6ed; }
+.message-item.unread { background: #dbeafe; }
+
+/* Teachers Tab */
+.teachers-list { margin-top: 10px; }
+.teacher-row { background: #f8fafc; padding: 15px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid #3b82f6; }
+.teacher-row .teacher-email { font-weight: 600; color: #0f172a; }
+.teacher-row .teacher-role-badge { background: #dbeafe; color: #1d4ed8; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; }
+.teacher-row .teacher-role-badge.admin { background: #fef3c7; color: #92400e; }
+.teacher-row .teacher-role-badge.esp { background: #d1fae5; color: #065f46; }
+.teacher-stats { color: #64748b; font-size: 0.85rem; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: white; padding: 40px; border-radius: 20px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.modal-close { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #94a3b8; }
+.modal-close:hover { color: #0f172a; }
+
+/* Student Report Modal */
+.report-section { margin: 20px 0; padding: 20px; background: #f8fafc; border-radius: 12px; }
+.report-section h3 { color: #0f172a; margin-bottom: 15px; }
+.metric-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.metric-label { color: #64748b; }
+.metric-value { font-weight: 700; color: #0f172a; }
+
+/* Chat Interface */
+.chat-container { background: #f8fafc; border-radius: 12px; padding: 20px; height: 400px; display: flex; flex-direction: column; }
+.chat-messages { flex: 1; overflow-y: auto; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+.chat-bubble { max-width: 70%; padding: 12px 16px; border-radius: 12px; }
+.chat-bubble.teacher { background: #3b82f6; color: white; align-self: flex-end; }
+.chat-bubble.parent { background: white; border: 2px solid #e2e8f0; align-self: flex-start; }
+.chat-input-area { display: flex; gap: 10px; }
+.chat-input { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; }
+
+/* Access Denied */
+.access-denied {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 20px;
+  border: 2px solid #fee2e2;
+  max-width: 500px;
+  margin: 100px auto;
+}
+.access-denied h2 { color: #ef4444; font-size: 1.8rem; margin-bottom: 15px; }
+.access-denied p { color: #64748b; line-height: 1.6; }
+
+.hidden { display: none; }
+.loading { text-align: center; padding: 40px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<!-- Dashboard (hidden until auth check passes) -->
+<div class="dashboard hidden" id="dashboardWrapper">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      🎛️ StudentScope <span>TEACH</span>
+    </div>
+    
+    <div class="nav-item active" onclick="showSection('overview')">
+      <span>📊</span> Overview
+    </div>
+    <div class="nav-item" onclick="showSection('students')">
+      <span>👥</span> Students
+    </div>
+    <div class="nav-item" onclick="showSection('log')">
+      <span>📝</span> Log Behavior
+    </div>
+    <div class="nav-item" onclick="showSection('messages')">
+      <span>📬</span> Messages <span id="sidebarBadge" class="hidden inbox-badge">0</span>
+    </div>
+    <div class="nav-item" onclick="showSection('teachers')" id="teachersNavItem">
+      <span>👥</span> Users & Roles
+    </div>
+    
+    <div class="user-section">
+      <div class="nav-item" id="userEmailNav">
+        <span>👤</span> Loading...
+      </div>
+      <div class="nav-item" id="userRoleNav" style="font-size:0.85rem;opacity:0.7;">
+        <span>🏷️</span> Loading role...
+      </div>
+      <div class="nav-item" onclick="logout()">
+        <span>🚪</span> Logout
+      </div>
+    </div>
+  </div>
+  
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- SECTION: OVERVIEW -->
+    <div id="overviewSection">
+      <div class="dashboard-header">
+        <div class="header-title">
+          <h1>Command Center</h1>
+          <p id="overviewSubtitle">Real-time behavior tracking — all teachers</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="showSection('log')">
+            <span>⚡</span> Quick Log
+          </button>
+        </div>
+      </div>
+      
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Today</div>
+          <div class="stat-value" id="statToday">0</div>
+          <div class="stat-change">Behaviors logged</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">This Week</div>
+          <div class="stat-value" id="statWeek">0</div>
+          <div class="stat-change">Last 7 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Positive</div>
+          <div class="stat-value" id="statPositive" style="color:#10b981;">0</div>
+          <div class="stat-change">✓ Good behaviors</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Negative</div>
+          <div class="stat-value" id="statNegative" style="color:#ef4444;">0</div>
+          <div class="stat-change">⚠ Incidents</div>
+        </div>
+      </div>
+
+      <!-- Teacher Filter Bar -->
+      <div class="filter-bar">
+        <label>🔍 Filter by ESP User:</label>
+        <select id="teacherFilter" onchange="App.applyFilters()">
+          <option value="">All Teachers</option>
+        </select>
+        <label>Type:</label>
+        <select id="typeFilter" onchange="App.applyFilters()">
+          <option value="">All Types</option>
+          <option value="positive">✓ Positive Only</option>
+          <option value="negative">⚠ Negative Only</option>
+        </select>
+        <span class="filter-count" id="filterCount"></span>
+      </div>
+      
+      <!-- Recent Behaviors -->
+      <div class="action-card" style="margin-bottom:20px;">
+        <h3>📋 Recent Activity — Logged by ESP Staff</h3>
+        <div class="behavior-list" id="recentBehaviorsList">
+          <p class="loading">Loading behaviors...</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- SECTION: STUDENTS -->
+    <div id="studentsSection" class="hidden">
+      <div class="dashboard-header">
+        <div class="header-title">
+          <h1>Student Management</h1>
+          <p>All students across all teachers</p>
+        </div>
+      </div>
+      
+      <div class="action-grid">
+        <!-- Add Student -->
+        <div class="action-card">
+          <h3>➕ Add New Student</h3>
+          <div class="form-group">
+            <label>Student Name</label>
+            <input type="text" id="newStudentName" placeholder="Enter name">
+          </div>
+          <div class="form-group">
+            <label>Grade</label>
+            <input type="text" id="newStudentGrade" placeholder="Grade level">
+          </div>
+          <button class="btn btn-success btn-full" onclick="addStudent()">Add Student</button>
+        </div>
+        
+        <!-- Student List (spans 2 columns) -->
+        <div class="action-card" style="grid-column: span 2;">
+          <h3>👥 All Students</h3>
+          <div class="student-grid" id="studentGrid">
+            <p class="loading">Loading students...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- SECTION: LOG BEHAVIOR -->
+    <div id="logSection" class="hidden">
+      <div class="dashboard-header">
+        <div class="header-title">
+          <h1>Log Behavior</h1>
+          <p>Quick behavior logging</p>
+        </div>
+      </div>
+      
+      <div class="action-card" style="max-width:600px;margin:0 auto;">
+        <div class="form-group">
+          <label>Student Name</label>
+          <input type="text" id="logStudentName" placeholder="Enter student name...">
+        </div>
+        <div class="form-group">
+          <label>Behavior Description</label>
+          <textarea id="logBehaviorText" placeholder="Describe what happened..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="logBehaviorType">
+            <option value="negative">⚠ Negative Behavior</option>
+            <option value="positive">✓ Positive Behavior</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="logBehavior()">
+          <span>💾</span> Log Behavior
+        </button>
+      </div>
+    </div>
+    
+    <!-- SECTION: MESSAGES -->
+    <div id="messagesSection" class="hidden">
+      <div class="dashboard-header">
+        <div class="header-title">
+          <h1>Parent Messages</h1>
+          <p>Conversations with parents</p>
+        </div>
+      </div>
+      
+      <div class="action-card">
+        <div class="message-list" id="messagesList">
+          <p class="loading">Loading messages...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: TEACHERS (admin/management) -->
+    <div id="teachersSection" class="hidden">
+      <div class="dashboard-header">
+        <div class="header-title">
+          <h1>Teacher Accounts</h1>
+          <p>All registered teacher accounts in the system</p>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <h3>👥 All Portal Users by Role</h3>
+        <p style="color:#64748b;margin-bottom:20px;font-size:0.9rem;">
+          <strong>ESP users</strong> log behaviors via index.html. <strong>Teachers</strong> and <strong>Admins</strong> access this portal.
+        </p>
+        <div class="teachers-list" id="teachersList">
+          <p class="loading">Loading users...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Student Report -->
+<div id="studentReportModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeStudentReport()">&times;</span>
+    <h2 id="reportStudentName" style="margin-bottom:20px;"></h2>
+    
+    <div class="report-section">
+      <h3>📊 Behavior Summary</h3>
+      <div class="metric-row">
+        <span class="metric-label">Total Behaviors</span>
+        <span class="metric-value" id="reportTotal">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Positive Behaviors</span>
+        <span class="metric-value" style="color:#10b981;" id="reportPositive">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Negative Behaviors</span>
+        <span class="metric-value" style="color:#ef4444;" id="reportNegative">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Arcade Points</span>
+        <span class="metric-value" id="reportPoints">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Logged By</span>
+        <span class="metric-value" id="reportTeacher">—</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Parent Linked</span>
+        <span class="metric-value" id="reportParent">No</span>
+      </div>
+    </div>
+    
+    <div class="report-section">
+      <h3>📋 Recent Behaviors (Last 7 Days)</h3>
+      <div id="reportBehaviorsList"></div>
+    </div>
+    
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" onclick="emailStudentReport()">
+        <span>📧</span> Email Report
+      </button>
+      <button class="btn btn-secondary" onclick="printStudentReport()">
+        <span>🖨️</span> Print Report
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Chat -->
+<div id="chatModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeChat()">&times;</span>
+    <h2 id="chatStudentName" style="margin-bottom:20px;"></h2>
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type your reply...">
+        <button class="btn btn-primary" onclick="sendTeacherMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f4f8;">
+  <div style="background:white;padding:40px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.1);max-width:400px;width:90%;">
+    <h1 style="text-align:center;color:#3b82f6;margin-bottom:10px;">🎛️ StudentScope</h1>
+    <p style="text-align:center;color:#64748b;margin-bottom:5px;">Teacher Portal</p>
+    <p style="text-align:center;color:#94a3b8;font-size:0.85rem;margin-bottom:30px;">Sign in with your StudentScope account</p>
+    <h2 id="authTitle" style="text-align:center;margin-bottom:20px;">Sign In</h2>
+    <input type="email" id="authEmail" placeholder="Email" style="width:100%;padding:14px;margin-bottom:15px;border:2px solid #e2e8f0;border-radius:10px;">
+    <input type="password" id="authPassword" placeholder="Password" style="width:100%;padding:14px;margin-bottom:15px;border:2px solid #e2e8f0;border-radius:10px;">
+    <button id="authButton" onclick="AuthManager.handleAuth()" style="width:100%;padding:16px;background:#3b82f6;color:white;border:none;border-radius:10px;font-size:1.1rem;font-weight:600;cursor:pointer;">SIGN IN</button>
+    <div id="authError" style="color:#ef4444;text-align:center;margin-top:15px;display:none;"></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyDFI44iKYUJNu9-67UkfHQHeKHBRAjKleA",
+  authDomain: "studentscopebehaviorcenter.firebaseapp.com",
+  projectId: "studentscopebehaviorcenter",
+  storageBucket: "studentscopebehaviorcenter.firebasestorage.app",
+  messagingSenderId: "311398911099",
+  appId: "1:311398911099:web:6703268a2b65cdd969a6de"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Global State
+let currentTeacherId = null;
+let currentTeacherRole = null;
+let students = [];
+let behaviors = [];
+let filteredBehaviors = [];
+let conversations = [];
+let currentConversationId = null;
+let currentStudentForReport = null;
+
+// ========== AUTH MANAGER ==========
+const AuthManager = {
+  init() {
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        currentTeacherId = user.uid;
+        
+        // ── ROLE CHECK ──────────────────────────────────────────────
+        // Only users with a role doc in /userRoles can access the portal.
+        // Any teacher who signed up via index.html will have this doc.
+        try {
+          const roleDoc = await db.collection('userRoles').doc(user.uid).get();
+          
+          if (!roleDoc.exists) {
+            // No role doc — deny access
+            this.showAccessDenied('Your account does not have portal access. Please sign up via the main app first.');
+            return;
+          }
+
+          currentTeacherRole = roleDoc.data().role; // 'teacher' | 'admin'
+
+          // Both 'teacher' and 'admin' can access the portal
+          if (currentTeacherRole !== 'teacher' && currentTeacherRole !== 'admin') {
+            this.showAccessDenied('Your account role does not allow portal access.');
+            return;
+          }
+
+          // ── ACCESS GRANTED ──────────────────────────────────────
+          document.getElementById('loginScreen').style.display = 'none';
+          document.getElementById('dashboardWrapper').classList.remove('hidden');
+
+          document.getElementById('userEmailNav').innerHTML = `<span>👤</span> ${user.email}`;
+          document.getElementById('userRoleNav').innerHTML = 
+            `<span>🏷️</span> ${currentTeacherRole === 'admin' ? '🛡️ Admin' : '👩‍🏫 Teacher'}`;
+
+          App.init();
+
+        } catch (err) {
+          console.error('Role check failed:', err);
+          this.showAccessDenied('Unable to verify account permissions. Please try again.');
+        }
+
+      } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('dashboardWrapper').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('authPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.handleAuth();
+    });
+  },
+
+  async handleAuth() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+
+    if (!email || !password) {
+      this.showError('Please enter both email and password');
+      return;
+    }
+
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      this.showError(error.message);
+    }
+  },
+
+  showError(message) {
+    const errorDiv = document.getElementById('authError');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  },
+
+  showAccessDenied(message) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboardWrapper').classList.add('hidden');
+    document.body.innerHTML = `
+      <div class="access-denied" style="text-align:center;padding:60px 40px;background:white;border-radius:20px;border:2px solid #fee2e2;max-width:500px;margin:100px auto;">
+        <div style="font-size:4rem;margin-bottom:20px;">🔒</div>
+        <h2 style="color:#ef4444;font-size:1.8rem;margin-bottom:15px;">Access Denied</h2>
+        <p style="color:#64748b;line-height:1.6;margin-bottom:25px;">${message}</p>
+        <button onclick="auth.signOut().then(()=>location.reload())" 
+          style="padding:12px 30px;background:#3b82f6;color:white;border:none;border-radius:10px;font-size:1rem;cursor:pointer;">
+          Back to Login
+        </button>
+      </div>`;
+  }
+};
+
+// ========== MAIN APP ==========
+const App = {
+  init() {
+    // ── Load ALL data — no teacherId filter ──────────────────────
+    this.loadAllStudents();
+    this.loadAllBehaviors();
+    this.loadConversations();
+    this.loadTeachersList();
+  },
+
+  // ── STUDENTS: global collection, no filter ──────────────────────
+  async loadAllStudents() {
+    const snapshot = await db.collection('students').get();
+
+    students = [];
+    snapshot.forEach(doc => {
+      students.push({ id: doc.id, ...doc.data() });
+    });
+
+    this.renderStudentGrid();
+  },
+
+  renderStudentGrid() {
+    const grid = document.getElementById('studentGrid');
+    if (students.length === 0) {
+      grid.innerHTML = '<p class="loading">No students yet. Add your first student!</p>';
+      return;
+    }
+
+    grid.innerHTML = students.map(s => `
+      <div class="student-card" onclick="openStudentReport('${s.id}')">
+        <div class="student-name">${s.name}</div>
+        <div class="student-meta">Grade ${s.grade || '—'}</div>
+        ${s.parentId ? '<div class="student-meta" style="color:#10b981;">✓ Parent Linked</div>' : ''}
+        ${s.teacherEmail ? `<div class="teacher-tag">👩‍🏫 ${s.teacherEmail}</div>` : ''}
+        ${s.accessCode ? `<div class="access-code">${s.accessCode}</div>` : ''}
+      </div>
+    `).join('');
+  },
+
+  // ── BEHAVIORS: global collection, no teacherId filter ───────────
+  async loadAllBehaviors() {
+    const snapshot = await db.collection('behaviors')
+      .orderBy('timestamp', 'desc')
+      .limit(200)
+      .get();
+
+    behaviors = [];
+    const teacherEmails = new Set();
+
+    snapshot.forEach(doc => {
+      const b = { id: doc.id, ...doc.data() };
+      behaviors.push(b);
+      if (b.teacherEmail) teacherEmails.add(b.teacherEmail);
+    });
+
+    // Populate teacher filter dropdown
+    this.populateTeacherFilter(teacherEmails);
+
+    filteredBehaviors = [...behaviors];
+    this.updateStats();
+    this.renderRecentBehaviors(filteredBehaviors);
+  },
+
+  populateTeacherFilter(emailSet) {
+    const select = document.getElementById('teacherFilter');
+    select.innerHTML = '<option value="">All Teachers</option>';
+    emailSet.forEach(email => {
+      const opt = document.createElement('option');
+      opt.value = email;
+      opt.textContent = email;
+      select.appendChild(opt);
+    });
+  },
+
+  applyFilters() {
+    const teacherFilter = document.getElementById('teacherFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+
+    filteredBehaviors = behaviors.filter(b => {
+      const matchTeacher = !teacherFilter || b.teacherEmail === teacherFilter;
+      const matchType = !typeFilter || b.type === typeFilter;
+      return matchTeacher && matchType;
+    });
+
+    document.getElementById('filterCount').textContent = 
+      `Showing ${filteredBehaviors.length} of ${behaviors.length} entries`;
+
+    this.updateStats();
+    this.renderRecentBehaviors(filteredBehaviors);
+  },
+
+  updateStats() {
+    const source = filteredBehaviors;
+    const now = new Date();
+    const today = source.filter(b => 
+      new Date(b.timestamp).toDateString() === now.toDateString()
+    ).length;
+    
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisWeek = source.filter(b => new Date(b.timestamp) > weekAgo).length;
+    
+    const positive = source.filter(b => b.type === 'positive').length;
+    const negative = source.filter(b => b.type === 'negative').length;
+    
+    document.getElementById('statToday').textContent = today;
+    document.getElementById('statWeek').textContent = thisWeek;
+    document.getElementById('statPositive').textContent = positive;
+    document.getElementById('statNegative').textContent = negative;
+  },
+
+  renderRecentBehaviors(list) {
+    const el = document.getElementById('recentBehaviorsList');
+    const recent = list.slice(0, 20);
+
+    if (recent.length === 0) {
+      el.innerHTML = '<p class="loading">No behaviors match your filters</p>';
+      return;
+    }
+
+    el.innerHTML = recent.map(b => `
+      <div class="behavior-item ${b.type}">
+        <div class="behavior-header">
+          <span class="behavior-student">${b.studentName}</span>
+          <span class="behavior-type" style="color:${b.type === 'positive' ? '#10b981' : '#ef4444'}">
+            ${b.type === 'positive' ? '✓' : '⚠️'}
+          </span>
+        </div>
+        <div class="behavior-text">${b.behavior}</div>
+        <div class="behavior-time">${new Date(b.timestamp).toLocaleString()}</div>
+        ${b.teacherEmail ? `<div class="teacher-tag">👩‍🏫 ${b.teacherEmail}</div>` : ''}
+      </div>
+    `).join('');
+  },
+
+  // ── USERS LIST ────────────────────────────────────────────────
+  async loadTeachersList() {
+    const snapshot = await db.collection('userRoles').get();
+    const list = document.getElementById('teachersList');
+    
+    if (snapshot.empty) {
+      list.innerHTML = '<p class="loading">No user accounts found</p>';
+      return;
+    }
+
+    const users = [];
+    snapshot.forEach(doc => users.push(doc.data()));
+
+    // Sort: admins first, then teachers, then esp
+    const roleOrder = { admin: 0, teacher: 1, esp: 2 };
+    users.sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
+
+    const roleMeta = {
+      admin:   { label: '🛡️ Admin',   cls: 'admin',   desc: 'Portal access + management' },
+      teacher: { label: '👩‍🏫 Teacher', cls: '',        desc: 'Portal access' },
+      esp:     { label: '🧑‍💼 ESP',    cls: 'esp',     desc: 'Behavior logger (index.html)' }
+    };
+
+    list.innerHTML = users.map(t => {
+      const behaviorCount = behaviors.filter(b => b.teacherId === t.uid).length;
+      const meta = roleMeta[t.role] || { label: t.role, cls: '', desc: '' };
+      return `
+        <div class="teacher-row">
+          <div>
+            <div class="teacher-email">${t.email}</div>
+            <div class="teacher-stats">${behaviorCount} behaviors logged · ${meta.desc} · Joined ${new Date(t.createdAt).toLocaleDateString()}</div>
+          </div>
+          <div class="teacher-role-badge ${meta.cls}">${meta.label}</div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  async loadConversations() {
+    db.collection('conversations')
+      .where('teacherId', '==', currentTeacherId)
+      .onSnapshot(snapshot => {
+        conversations = [];
+        let unreadCount = 0;
+
+        snapshot.forEach(doc => {
+          const conv = { id: doc.id, ...doc.data() };
+          conversations.push(conv);
+
+          const lastMessage = conv.messages && conv.messages.length > 0 
+            ? conv.messages[conv.messages.length - 1] 
+            : null;
+          if (lastMessage && lastMessage.senderId !== currentTeacherId && !lastMessage.read) {
+            unreadCount++;
+          }
+        });
+
+        const badge = document.getElementById('sidebarBadge');
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        this.renderMessages();
+      });
+  },
+
+  renderMessages() {
+    const list = document.getElementById('messagesList');
+    
+    if (conversations.length === 0) {
+      list.innerHTML = '<p class="loading">No messages yet</p>';
+      return;
+    }
+
+    list.innerHTML = conversations.map(conv => {
+      const lastMessage = conv.messages && conv.messages.length > 0 
+        ? conv.messages[conv.messages.length - 1] 
+        : null;
+      const isUnread = lastMessage && lastMessage.senderId !== currentTeacherId && !lastMessage.read;
+
+      return `
+        <div class="message-item ${isUnread ? 'unread' : ''}" onclick="openChat('${conv.id}')">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <strong>${conv.studentName}</strong>
+            ${isUnread ? '<span style="color:#3b82f6;font-weight:bold;">NEW</span>' : ''}
+          </div>
+          <div style="color:#64748b;font-size:0.9rem;">
+            ${lastMessage ? lastMessage.text.substring(0, 60) + '...' : 'No messages yet'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+};
+
+// ========== ACTIONS ==========
+async function addStudent() {
+  const name = document.getElementById('newStudentName').value.trim();
+  const grade = document.getElementById('newStudentGrade').value.trim();
+
+  if (!name || !grade) {
+    alert('Please enter both name and grade');
+    return;
+  }
+
+  const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  try {
+    await db.collection('students').add({
+      name: name,
+      grade: grade,
+      teacherId: currentTeacherId,
+      teacherEmail: auth.currentUser.email,
+      accessCode: accessCode,
+      parentId: null,
+      points: 0,
+      createdAt: new Date().toISOString()
+    });
+
+    document.getElementById('newStudentName').value = '';
+    document.getElementById('newStudentGrade').value = '';
+    App.loadAllStudents();
+    alert(`Student added!\n\nAccess Code: ${accessCode}\n\nShare this code with parents.`);
+  } catch (error) {
+    alert('Failed to add student: ' + error.message);
+  }
+}
+
+async function logBehavior() {
+  const studentName = document.getElementById('logStudentName').value.trim();
+  const behaviorText = document.getElementById('logBehaviorText').value.trim();
+  const behaviorType = document.getElementById('logBehaviorType').value;
+
+  if (!studentName || !behaviorText) {
+    alert('Please enter a student name and describe the behavior');
+    return;
+  }
+
+  const timestamp = new Date().toISOString();
+
+  try {
+    // Write to global /behaviors — all teachers will see it
+    await db.collection('behaviors').add({
+      studentName: studentName,
+      teacherId: currentTeacherId,
+      teacherEmail: auth.currentUser.email,
+      behavior: behaviorType === 'positive' ? `⭐ GOOD BEHAVIOR ALERT ⭐\n${behaviorText}` : behaviorText,
+      type: behaviorType,
+      timestamp: timestamp,
+      date: timestamp,
+      source: 'teacher-portal'
+    });
+
+    // Also write to teacher's personal log
+    await db.collection('users').doc(currentTeacherId).collection('logs').add({
+      studentName: studentName,
+      teacherEmail: auth.currentUser.email,
+      behavior: behaviorType === 'positive' ? `⭐ GOOD BEHAVIOR ALERT ⭐\n${behaviorText}` : behaviorText,
+      type: behaviorType,
+      date: timestamp,
+      antecedent: '',
+      consequence: '',
+      comments: [],
+      teacherId: currentTeacherId
+    });
+
+    document.getElementById('logBehaviorText').value = '';
+    document.getElementById('logStudentName').value = '';
+
+    App.loadAllBehaviors();
+    showSection('overview');
+    alert(`✓ Behavior logged for ${studentName}!`);
+  } catch (error) {
+    alert('Failed to log behavior: ' + error.message);
+  }
+}
+
+async function openStudentReport(studentId) {
+  currentStudentForReport = studentId;
+  const student = students.find(s => s.id === studentId);
+  
+  // Pull behaviors matching student name (since behaviors uses name not studentId in index.html flow)
+  const studentBehaviors = behaviors.filter(b => 
+    b.studentId === studentId || b.studentName === student.name
+  );
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentBehaviors = studentBehaviors.filter(b => new Date(b.timestamp) > weekAgo);
+  const positive = studentBehaviors.filter(b => b.type === 'positive').length;
+  const negative = studentBehaviors.filter(b => b.type === 'negative').length;
+
+  document.getElementById('reportStudentName').textContent = `📊 ${student.name} — Individual Report`;
+  document.getElementById('reportTotal').textContent = studentBehaviors.length;
+  document.getElementById('reportPositive').textContent = positive;
+  document.getElementById('reportNegative').textContent = negative;
+  document.getElementById('reportPoints').textContent = student.points || 0;
+  document.getElementById('reportTeacher').textContent = student.teacherEmail || '—';
+  document.getElementById('reportParent').textContent = student.parentId ? 'Yes ✓' : 'No';
+
+  const behaviorsList = document.getElementById('reportBehaviorsList');
+  if (recentBehaviors.length === 0) {
+    behaviorsList.innerHTML = '<p style="color:#64748b;">No behaviors in the last 7 days</p>';
+  } else {
+    behaviorsList.innerHTML = recentBehaviors.map(b => `
+      <div class="behavior-item ${b.type}" style="margin-bottom:15px;">
+        <div class="behavior-header" style="margin-bottom:10px;">
+          <span class="behavior-type" style="color:${b.type === 'positive' ? '#10b981' : '#ef4444'}">
+            ${b.type === 'positive' ? '✓ POSITIVE BEHAVIOR' : '⚠ NEGATIVE BEHAVIOR'}
+          </span>
+          <span class="behavior-time">${new Date(b.timestamp).toLocaleString()}</span>
+        </div>
+        <div style="margin-bottom:8px;">
+          <strong style="color:#0f172a;">Behavior:</strong>
+          <div style="color:#475569;margin-top:4px;line-height:1.6;">${b.behavior}</div>
+        </div>
+        ${b.teacherEmail ? `<div class="teacher-tag">👩‍🏫 ${b.teacherEmail}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('studentReportModal').classList.add('active');
+}
+
+function closeStudentReport() {
+  document.getElementById('studentReportModal').classList.remove('active');
+  currentStudentForReport = null;
+}
+
+function emailStudentReport() {
+  const student = students.find(s => s.id === currentStudentForReport);
+  const studentBehaviors = behaviors.filter(b => 
+    b.studentId === currentStudentForReport || b.studentName === student.name
+  );
+  const positive = studentBehaviors.filter(b => b.type === 'positive').length;
+  const negative = studentBehaviors.filter(b => b.type === 'negative').length;
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentBehaviors = studentBehaviors.filter(b => new Date(b.timestamp) > weekAgo);
+
+  let emailBody = `STUDENTSCOPE INDIVIDUAL REPORT\n${'='.repeat(60)}\n\n`;
+  emailBody += `Student: ${student.name}\nGrade: ${student.grade}\n`;
+  emailBody += `Teacher: ${student.teacherEmail || 'N/A'}\n`;
+  emailBody += `Report Generated: ${new Date().toLocaleString()}\n\n`;
+  emailBody += `BEHAVIOR SUMMARY\n${'-'.repeat(60)}\n`;
+  emailBody += `Total Behaviors (All Time): ${studentBehaviors.length}\n`;
+  emailBody += `Positive Behaviors: ${positive}\nNegative Behaviors: ${negative}\n`;
+  emailBody += `Arcade Points: ${student.points || 0}\n\n`;
+  emailBody += `${'='.repeat(60)}\nDETAILED BEHAVIOR LOG (Last 7 Days)\n\n`;
+
+  if (recentBehaviors.length === 0) {
+    emailBody += `No behaviors logged in the last 7 days.\n`;
+  } else {
+    recentBehaviors.forEach((b, i) => {
+      emailBody += `${i + 1}. ${b.type === 'positive' ? '✓ POSITIVE' : '⚠ NEGATIVE'}\n`;
+      emailBody += `   Date/Time: ${new Date(b.timestamp).toLocaleString()}\n`;
+      emailBody += `   Logged by: ${b.teacherEmail || 'N/A'}\n`;
+      emailBody += `   Behavior: ${b.behavior}\n\n`;
+    });
+  }
+
+  emailBody += `${'='.repeat(60)}\nGenerated by StudentScope Behavior Tracking System\n`;
+  window.location.href = `mailto:?subject=${encodeURIComponent('StudentScope Individual Report: ' + student.name)}&body=${encodeURIComponent(emailBody)}`;
+}
+
+function printStudentReport() { window.print(); }
+
+async function openChat(conversationId) {
+  currentConversationId = conversationId;
+  const conv = conversations.find(c => c.id === conversationId);
+
+  document.getElementById('chatStudentName').textContent = `💬 ${conv.studentName}`;
+  document.getElementById('chatModal').classList.add('active');
+
+  loadChatMessages();
+
+  if (conv.messages) {
+    const updatedMessages = conv.messages.map(msg => {
+      if (msg.senderId !== currentTeacherId) return { ...msg, read: true };
+      return msg;
+    });
+    await db.collection('conversations').doc(conversationId).update({ messages: updatedMessages });
+  }
+}
+
+function loadChatMessages() {
+  const conv = conversations.find(c => c.id === currentConversationId);
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = '';
+
+  if (!conv.messages || conv.messages.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#64748b;">No messages yet</p>';
+    return;
+  }
+
+  conv.messages.forEach(msg => {
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${msg.senderId === currentTeacherId ? 'teacher' : 'parent'}`;
+    bubble.innerHTML = `
+      <div>${msg.text}</div>
+      <div style="font-size:0.8rem;margin-top:5px;opacity:0.7;">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+    `;
+    container.appendChild(bubble);
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendTeacherMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const conv = conversations.find(c => c.id === currentConversationId);
+  const newMessage = { text, senderId: currentTeacherId, timestamp: new Date().toISOString(), read: false };
+  const updatedMessages = [...(conv.messages || []), newMessage];
+
+  try {
+    await db.collection('conversations').doc(currentConversationId).update({
+      messages: updatedMessages, parentCanReply: true
+    });
+    input.value = '';
+    App.loadConversations();
+    setTimeout(() => loadChatMessages(), 500);
+  } catch (error) {
+    alert('Failed to send message');
+  }
+}
+
+function closeChat() {
+  document.getElementById('chatModal').classList.remove('active');
+  currentConversationId = null;
+}
+
+function showSection(section) {
+  document.querySelectorAll('.main-content > div').forEach(div => div.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+  const sectionMap = {
+    overview: ['overviewSection', 0],
+    students: ['studentsSection', 1],
+    log: ['logSection', 2],
+    messages: ['messagesSection', 3],
+    teachers: ['teachersSection', 4]
+  };
+
+  const [sectionId, navIndex] = sectionMap[section] || ['overviewSection', 0];
+  document.getElementById(sectionId).classList.remove('hidden');
+  document.querySelectorAll('.nav-item')[navIndex]?.classList.add('active');
+
+  // Refresh teachers list when tab opened
+  if (section === 'teachers') App.loadTeachersList();
+}
+
+function logout() { auth.signOut(); }
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  AuthManager.init();
+});
+</script>
+</body>
+</html>
