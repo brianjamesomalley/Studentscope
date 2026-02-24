@@ -574,8 +574,9 @@ const App = {
       });
 
       // WRITE 3 & 4: Check for linked parent → notify + update arcade points
+      // Search globally by student name — not filtered by teacherId
+      // so any ESP user logging a behavior can trigger parent notifications
       const studentSnapshot = await db.collection('students')
-        .where('teacherId', '==', userId)
         .where('name', '==', studentName)
         .get();
 
