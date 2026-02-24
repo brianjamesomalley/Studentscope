@@ -829,8 +829,8 @@ const App = {
   },
 
   async loadConversations() {
+    // Global query — no teacherId filter so ALL parent conversations appear
     db.collection('conversations')
-      .where('teacherId', '==', currentTeacherId)
       .onSnapshot(snapshot => {
         conversations = [];
         let unreadCount = 0;
@@ -839,12 +839,19 @@ const App = {
           const conv = { id: doc.id, ...doc.data() };
           conversations.push(conv);
 
-          const lastMessage = conv.messages && conv.messages.length > 0 
-            ? conv.messages[conv.messages.length - 1] 
+          const lastMessage = conv.messages && conv.messages.length > 0
+            ? conv.messages[conv.messages.length - 1]
             : null;
           if (lastMessage && lastMessage.senderId !== currentTeacherId && !lastMessage.read) {
             unreadCount++;
           }
+        });
+
+        // Sort: most recent message first
+        conversations.sort((a, b) => {
+          const aLast = a.messages?.length ? new Date(a.messages[a.messages.length - 1].timestamp) : 0;
+          const bLast = b.messages?.length ? new Date(b.messages[b.messages.length - 1].timestamp) : 0;
+          return bLast - aLast;
         });
 
         const badge = document.getElementById('sidebarBadge');
@@ -861,26 +868,45 @@ const App = {
 
   renderMessages() {
     const list = document.getElementById('messagesList');
-    
+
     if (conversations.length === 0) {
-      list.innerHTML = '<p class="loading">No messages yet</p>';
+      list.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+          <div style="font-size:3rem;margin-bottom:10px;">📭</div>
+          <p>No parent conversations yet.</p>
+          <p style="font-size:0.85rem;margin-top:8px;">Conversations are created when parents link their student via the parent portal.</p>
+        </div>`;
       return;
     }
 
     list.innerHTML = conversations.map(conv => {
-      const lastMessage = conv.messages && conv.messages.length > 0 
-        ? conv.messages[conv.messages.length - 1] 
+      const lastMessage = conv.messages && conv.messages.length > 0
+        ? conv.messages[conv.messages.length - 1]
         : null;
       const isUnread = lastMessage && lastMessage.senderId !== currentTeacherId && !lastMessage.read;
+      const isParentLocked = conv.parentCanReply === false;
+      const msgCount = conv.messages?.length || 0;
 
       return `
         <div class="message-item ${isUnread ? 'unread' : ''}" onclick="openChat('${conv.id}')">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <strong>${conv.studentName}</strong>
-            ${isUnread ? '<span style="color:#3b82f6;font-weight:bold;">NEW</span>' : ''}
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+            <div>
+              <strong style="font-size:1rem;">${conv.studentName}</strong>
+              <span style="color:#94a3b8;font-size:0.8rem;margin-left:8px;">${conv.parentEmail || ''}</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${isUnread ? '<span style="background:#3b82f6;color:white;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:700;">NEW</span>' : ''}
+              ${isParentLocked ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;">⏳ Awaiting reply</span>' : '<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;">💬 Parent can reply</span>'}
+            </div>
           </div>
-          <div style="color:#64748b;font-size:0.9rem;">
-            ${lastMessage ? lastMessage.text.substring(0, 60) + '...' : 'No messages yet'}
+          <div style="color:#64748b;font-size:0.9rem;margin-bottom:6px;">
+            ${lastMessage
+              ? `<em>${lastMessage.senderId === currentTeacherId ? 'You' : 'Parent'}:</em> ${lastMessage.text.substring(0, 70)}${lastMessage.text.length > 70 ? '...' : ''}`
+              : '<em style="color:#94a3b8;">No messages yet — start the conversation</em>'}
+          </div>
+          <div style="color:#94a3b8;font-size:0.8rem;">
+            ${msgCount} message${msgCount !== 1 ? 's' : ''}
+            ${lastMessage ? ` · ${new Date(lastMessage.timestamp).toLocaleString()}` : ''}
           </div>
         </div>
       `;
