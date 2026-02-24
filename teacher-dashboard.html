@@ -515,6 +515,7 @@ let currentTeacherRole = null;
 let students = [];
 let behaviors = [];
 let filteredBehaviors = [];
+let renderedBehaviors = []; // tracks current feed for forward button
 let conversations = [];
 let currentConversationId = null;
 let currentStudentForReport = null;
@@ -652,15 +653,29 @@ const App = {
       return;
     }
 
-    grid.innerHTML = students.map(s => `
-      <div class="student-card" onclick="openStudentReport('${s.id}')">
-        <div class="student-name">${s.name}</div>
-        <div class="student-meta">Grade ${s.grade || '—'}</div>
-        ${s.parentId ? '<div class="student-meta" style="color:#10b981;">✓ Parent Linked</div>' : ''}
-        ${s.teacherEmail ? `<div class="teacher-tag">👩‍🏫 ${s.teacherEmail}</div>` : ''}
-        ${s.accessCode ? `<div class="access-code">${s.accessCode}</div>` : ''}
-      </div>
-    `).join('');
+    grid.innerHTML = students.map(s => {
+      const hasParent = !!s.parentId;
+      return `
+        <div class="student-card" onclick="openStudentReport('${s.id}')">
+          <div class="student-name">${s.name}</div>
+          <div class="student-meta">Grade ${s.grade || '—'}</div>
+          ${hasParent
+            ? '<div class="student-meta" style="color:#10b981;">✓ Parent Linked</div>'
+            : '<div class="student-meta" style="color:#94a3b8;">No parent linked</div>'}
+          ${s.teacherEmail ? `<div class="teacher-tag">🧑‍💼 ${s.teacherEmail}</div>` : ''}
+          ${s.accessCode ? `<div class="access-code">${s.accessCode}</div>` : ''}
+          <button
+            onclick="event.stopPropagation(); messageParent('${s.id}')"
+            ${!hasParent ? 'disabled' : ''}
+            style="margin-top:10px;width:100%;padding:8px;
+              background:${hasParent ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : '#e2e8f0'};
+              color:${hasParent ? 'white' : '#94a3b8'};
+              border:none;border-radius:8px;font-size:0.85rem;font-weight:600;
+              cursor:${hasParent ? 'pointer' : 'not-allowed'};">
+            ${hasParent ? '💬 Message Parent' : '💬 No Parent Yet'}
+          </button>
+        </div>`;
+    }).join('');
   },
 
   // ── BEHAVIORS: global collection, no teacherId filter ───────────
@@ -770,24 +785,44 @@ const App = {
       return;
     }
 
-    el.innerHTML = recent.map(b => `
-      <div class="behavior-item ${b.type}">
-        <div class="behavior-header">
-          <span class="behavior-student">${b.studentName}</span>
-          <span class="behavior-type" style="color:${b.type === 'positive' ? '#10b981' : '#ef4444'}">
-            ${b.type === 'positive' ? '✓ Positive' : '⚠️ Negative'}
-          </span>
-        </div>
-        ${b.behavior
-          ? `<div style="margin:8px 0;padding:10px;background:white;border-radius:8px;color:#1e293b;font-size:0.95rem;line-height:1.5;border-left:3px solid ${b.type === 'positive' ? '#10b981' : '#ef4444'};">
-               <strong>What happened:</strong> ${b.behavior}
-             </div>`
-          : `<div style="margin:8px 0;color:#94a3b8;font-size:0.85rem;font-style:italic;">No description recorded</div>`
-        }
-        <div class="behavior-time">${new Date(b.timestamp).toLocaleString()}</div>
-        ${b.teacherEmail ? `<div class="teacher-tag">🧑‍💼 ${b.teacherEmail}</div>` : ''}
-      </div>
-    `).join('');
+    renderedBehaviors = recent; // store for forwardToParent reference
+    el.innerHTML = recent.map((b, idx) => {
+      // Check if a linked parent exists for this student
+      const student = students.find(s => s.name === b.studentName);
+      const hasParent = student && student.parentId;
+
+      return `
+        <div class="behavior-item ${b.type}" id="behavior-item-${idx}">
+          <div class="behavior-header">
+            <span class="behavior-student">${b.studentName}</span>
+            <span class="behavior-type" style="color:${b.type === 'positive' ? '#10b981' : '#ef4444'}">
+              ${b.type === 'positive' ? '✓ Positive' : '⚠️ Negative'}
+            </span>
+          </div>
+          ${b.behavior
+            ? `<div style="margin:8px 0;padding:10px;background:white;border-radius:8px;color:#1e293b;font-size:0.95rem;line-height:1.5;border-left:3px solid ${b.type === 'positive' ? '#10b981' : '#ef4444'};">
+                 <strong>What happened:</strong> ${b.behavior}
+               </div>`
+            : `<div style="margin:8px 0;color:#94a3b8;font-size:0.85rem;font-style:italic;">No description recorded</div>`
+          }
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div class="behavior-time">${new Date(b.timestamp).toLocaleString()}</div>
+              ${b.teacherEmail ? `<div class="teacher-tag">🧑‍💼 ${b.teacherEmail}</div>` : ''}
+            </div>
+            <button
+              id="fwd-btn-${idx}"
+              onclick="forwardToParent(${idx})"
+              data-behavior-idx="${idx}"
+              ${!hasParent ? 'disabled' : ''}
+              style="padding:7px 14px;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:${hasParent ? 'pointer' : 'not-allowed'};
+                background:${hasParent ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : '#e2e8f0'};
+                color:${hasParent ? 'white' : '#94a3b8'};">
+              ${hasParent ? '📨 Forward to Parent' : '📨 No Parent Linked'}
+            </button>
+          </div>
+        </div>`;
+    }).join('');
   },
 
   // ── USERS LIST ────────────────────────────────────────────────
@@ -915,6 +950,125 @@ const App = {
 };
 
 // ========== ACTIONS ==========
+
+
+// ── FORWARD BEHAVIOR TO PARENT ──────────────────────────────────
+async function forwardToParent(idx) {
+  const b = renderedBehaviors[idx];
+  if (!b) return;
+
+  const btn = document.getElementById(`fwd-btn-${idx}`);
+
+  // Find the linked student + parent
+  const student = students.find(s => s.name === b.studentName);
+  if (!student || !student.parentId) {
+    alert('No parent linked for this student.');
+    return;
+  }
+
+  // Disable button while processing
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending...';
+  btn.style.background = '#94a3b8';
+
+  try {
+    const timestamp = new Date().toISOString();
+
+    // 1. Write notification to parent
+    await db.collection('notifications').add({
+      parentId: student.parentId,
+      studentId: student.id,
+      studentName: b.studentName,
+      behaviorType: b.type,
+      behaviorText: b.behavior || '(no description)',
+      timestamp: timestamp,
+      read: false,
+      teacherId: currentTeacherId,
+      forwardedBy: auth.currentUser.email,
+      source: 'forwarded'
+    });
+
+    // 2. Find or create conversation thread
+    const existingConv = await db.collection('conversations')
+      .where('studentId', '==', student.id)
+      .where('parentId', '==', student.parentId)
+      .get();
+
+    let convId;
+    if (!existingConv.empty) {
+      convId = existingConv.docs[0].id;
+      // Unlock parent reply
+      await db.collection('conversations').doc(convId).update({
+        parentCanReply: true
+      });
+    } else {
+      const newConv = await db.collection('conversations').add({
+        studentId: student.id,
+        studentName: student.name,
+        teacherId: currentTeacherId,
+        parentId: student.parentId,
+        parentEmail: student.parentEmail || '',
+        messages: [],
+        parentCanReply: true,
+        createdAt: timestamp
+      });
+      convId = newConv.id;
+    }
+
+    // 3. Update button to confirm
+    btn.textContent = '✓ Forwarded!';
+    btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+    btn.disabled = true;
+
+    // Reset after 3 seconds
+    setTimeout(() => {
+      btn.textContent = '📨 Forward to Parent';
+      btn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+      btn.disabled = false;
+    }, 3000);
+
+  } catch (error) {
+    console.error('Forward failed:', error);
+    btn.textContent = '✗ Failed — retry';
+    btn.style.background = '#ef4444';
+    btn.disabled = false;
+  }
+}
+
+async function messageParent(studentId) {
+  const student = students.find(s => s.id === studentId);
+  if (!student || !student.parentId) return;
+
+  // Check if a conversation already exists
+  const existingSnapshot = await db.collection('conversations')
+    .where('studentId', '==', studentId)
+    .where('parentId', '==', student.parentId)
+    .get();
+
+  let conversationId;
+
+  if (!existingSnapshot.empty) {
+    conversationId = existingSnapshot.docs[0].id;
+  } else {
+    // Create a new conversation thread
+    const newConv = await db.collection('conversations').add({
+      studentId: studentId,
+      studentName: student.name,
+      teacherId: currentTeacherId,
+      parentId: student.parentId,
+      parentEmail: student.parentEmail || '',
+      messages: [],
+      parentCanReply: true,
+      createdAt: new Date().toISOString()
+    });
+    conversationId = newConv.id;
+  }
+
+  // Navigate to messages tab and open the chat
+  showSection('messages');
+  setTimeout(() => openChat(conversationId), 400);
+}
+
 async function addStudent() {
   const name = document.getElementById('newStudentName').value.trim();
   const grade = document.getElementById('newStudentGrade').value.trim();
