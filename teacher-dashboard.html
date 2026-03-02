@@ -251,10 +251,12 @@ textarea { min-height: 100px; resize: vertical; }
 
       <!-- Teacher Filter Bar -->
       <div class="filter-bar">
-        <label>🔍 ESP User:</label>
-        <select id="teacherFilter" onchange="App.applyFilters()">
-          <option value="">All Staff</option>
-        </select>
+        <span id="teacherFilterGroup" style="display:flex;align-items:center;gap:10px;">
+          <label>🔍 ESP User:</label>
+          <select id="teacherFilter" onchange="App.applyFilters()">
+            <option value="">All Staff</option>
+          </select>
+        </span>
         <label>Student:</label>
         <select id="studentFilter" onchange="App.applyFilters()">
           <option value="">All Students</option>
@@ -305,7 +307,7 @@ textarea { min-height: 100px; resize: vertical; }
       <div class="dashboard-header">
         <div class="header-title">
           <h1>Student Management</h1>
-          <p>All students across all teachers</p>
+          <p id="studentsSubtitle">Loading...</p>
         </div>
       </div>
       
@@ -370,7 +372,7 @@ textarea { min-height: 100px; resize: vertical; }
       <div class="dashboard-header">
         <div class="header-title">
           <h1>Parent Messages</h1>
-          <p>Conversations with parents</p>
+          <p id="messagesSubtitle">Loading...</p>
         </div>
       </div>
       
@@ -627,17 +629,85 @@ const AuthManager = {
 // ========== MAIN APP ==========
 const App = {
   init() {
-    // ── Load ALL data — no teacherId filter ──────────────────────
+    const isAdmin = currentTeacherRole === 'admin';
+
+    // Apply role-based UI adjustments
+    this.applyRoleUI(isAdmin);
+
+    // Load data — scoped for teachers, global for admins
     this.loadAllStudents();
     this.loadAllBehaviors();
     this.loadConversations();
-    this.loadTeachersList();
+    if (isAdmin) this.loadTeachersList();
   },
 
-  // ── STUDENTS: global collection, no filter ──────────────────────
-  async loadAllStudents() {
-    const snapshot = await db.collection('students').get();
+  applyRoleUI(isAdmin) {
+    // Hide Users & Roles tab from teachers
+    const usersNav = document.getElementById('teachersNavItem');
+    if (usersNav) usersNav.style.display = isAdmin ? 'flex' : 'none';
 
+    // Update overview subtitle
+    const subtitle = document.getElementById('overviewSubtitle');
+    if (subtitle) {
+      subtitle.textContent = isAdmin
+        ? 'Real-time behavior tracking — all schools'
+        : 'Real-time behavior tracking — your students';
+    }
+
+    // Hide ESP user filter for teachers (they only see their own data)
+    const teacherFilterGroup = document.getElementById('teacherFilterGroup');
+    if (teacherFilterGroup) {
+      teacherFilterGroup.style.display = isAdmin ? 'flex' : 'none';
+    }
+
+    // Update section subtitles
+    const studentsSubtitle = document.getElementById('studentsSubtitle');
+    if (studentsSubtitle) {
+      studentsSubtitle.textContent = isAdmin
+        ? 'All students across all schools'
+        : 'Your students only';
+    }
+
+    const messagesSubtitle = document.getElementById('messagesSubtitle');
+    if (messagesSubtitle) {
+      messagesSubtitle.textContent = isAdmin
+        ? 'All parent conversations across all schools'
+        : 'Parent conversations for your students';
+    }
+
+    // Add a visible role scope banner under the header
+    const existingBanner = document.getElementById('roleScopeBanner');
+    if (!existingBanner) {
+      const banner = document.createElement('div');
+      banner.id = 'roleScopeBanner';
+      banner.style.cssText = isAdmin
+        ? 'background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;color:#92400e;padding:10px 20px;border-radius:10px;margin-bottom:20px;font-weight:600;font-size:0.9rem;display:flex;align-items:center;gap:8px;'
+        : 'background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:1px solid #3b82f6;color:#1d4ed8;padding:10px 20px;border-radius:10px;margin-bottom:20px;font-weight:600;font-size:0.9rem;display:flex;align-items:center;gap:8px;';
+      banner.innerHTML = isAdmin
+        ? '🛡️ Admin view — showing all schools and all ESP staff data'
+        : '👩‍🏫 Teacher view — showing your students and behaviors only';
+
+      // Insert at top of each section's content area
+      ['overviewSection', 'studentsSection', 'logSection', 'messagesSection'].forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          const clone = banner.cloneNode(true);
+          section.insertBefore(clone, section.firstChild);
+        }
+      });
+    }
+  },
+
+  // ── STUDENTS: admin sees all, teacher sees their own ─────────────
+  async loadAllStudents() {
+    const isAdmin = currentTeacherRole === 'admin';
+    let query = db.collection('students');
+
+    if (!isAdmin) {
+      query = query.where('teacherId', '==', currentTeacherId);
+    }
+
+    const snapshot = await query.get();
     students = [];
     snapshot.forEach(doc => {
       students.push({ id: doc.id, ...doc.data() });
@@ -678,12 +748,19 @@ const App = {
     }).join('');
   },
 
-  // ── BEHAVIORS: global collection, no teacherId filter ───────────
+  // ── BEHAVIORS: admin sees all, teacher sees their own ────────────
   async loadAllBehaviors() {
-    const snapshot = await db.collection('behaviors')
-      .orderBy('timestamp', 'desc')
-      .limit(200)
-      .get();
+    const isAdmin = currentTeacherRole === 'admin';
+    let query = db.collection('behaviors').orderBy('timestamp', 'desc').limit(200);
+
+    if (!isAdmin) {
+      query = db.collection('behaviors')
+        .where('teacherId', '==', currentTeacherId)
+        .orderBy('timestamp', 'desc')
+        .limit(200);
+    }
+
+    const snapshot = await query.get();
 
     behaviors = [];
     const teacherEmails = new Set();
@@ -864,9 +941,13 @@ const App = {
   },
 
   async loadConversations() {
-    // Global query — no teacherId filter so ALL parent conversations appear
-    db.collection('conversations')
-      .onSnapshot(snapshot => {
+    // Admin sees all conversations; teacher sees only their own
+    const isAdmin = currentTeacherRole === 'admin';
+    const query = isAdmin
+      ? db.collection('conversations')
+      : db.collection('conversations').where('teacherId', '==', currentTeacherId);
+
+    query.onSnapshot(snapshot => {
         conversations = [];
         let unreadCount = 0;
 
